@@ -4,3 +4,7 @@
 .Ruserdata
 
 /.quarto/
+# Do not commit stuff that can be rendered from qmd
+*_cache/
+*_files/
+*.html
