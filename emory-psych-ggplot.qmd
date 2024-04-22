@@ -1,0 +1,519 @@
+---
+title: "Advanced data visualization with ggplot2"
+author: "Monica Thieu, PhD"
+execute:
+  echo: true
+  cache: true
+format:
+  revealjs:
+    incremental: true
+---
+
+```{r}
+#| context: setup
+#| include: false
+
+library(tidyverse)
+```
+
+## Goals
+
+By the end of this workshop, learners will be able to:
+
+- Distinguish primary components of a data graphic using the grammar of graphics
+- Identify specific techniques to refine a graph
+- Explain the rationale behind those techniques
+
+## The goal of a graph is to...
+
+. . .
+
+Show the most important data comparison as _clearly_ and _faithfully_ as possible.^[This may surprise you coming from me, but style comes third.]
+
+## The grammar of graphics
+
+The **grammar of graphics**^[Wilkinson (2005). _The grammar of graphics._ 2nd ed.] is a system for representing values in data using the aesthetic attributes of geometric objects^[Wickham, Navarro, & Pedersen (in progress). _ggplot2: Elegant graphics for data analysis._ 3rd ed. https://ggplot2-book.org].
+
+. . .
+
+Rather than mapping data to fixed categories of graphs (e.g., bar, scatter, or line plots), building a graph using the grammar of graphics involves _flexibly mapping data to specific aesthetic attributes._
+
+## The grammar of graphics {.smaller}
+
+In the grammar of graphics, a plot is comprised of **layers.**
+
+. . .
+
+Each **layer** is a single bundle of graph information: 
+
+- the **data** to plot
+- the aesthetics to **map** the data to (axis position, color, shape, facet panel^[Technically this _has_ to apply across layers, but I still count it as a mappable aesthetic.], etc.)
+- the **geom**etric object with which to draw the data
+- any **stat**istical transformations to apply to the data before drawing
+
+. . .
+
+Finally, the **theme** controls the appearance of all non-data elements of the plot.
+
+# Building a plot
+
+## Let's build this plot!
+
+```{r make-example-data-from-source}
+#| include: false
+#| eval: false
+
+example_data <- read_rds(here::here("metrics_all_studyforrest")) %>% 
+  filter(roi == "SC", parameter == "flynet") %>% 
+  mutate(r_diff = r_model_by.run.type - r_model_overall, 
+         is_expand = stim_type == "ring_expand") %>% 
+  group_by(is_expand, subj_num) %>% 
+  summarize(r_diff = mean(r_diff), .groups = "drop")
+
+write_rds(example_data, file = here::here("example_data.rds"))
+```
+
+```{r read-example-data}
+#| include: false
+example_data <- read_rds(here::here("example_data.rds"))
+```
+
+```{r full-plot}
+#| echo: false
+
+example_data %>% 
+  mutate(is_expand = if_else(is_expand, "Expanding rings", "Other stimuli")) %>% 
+ggplot(aes(x = is_expand, y = r_diff)) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  geom_point(color = "grey60", size = 2) +
+  geom_line(aes(group = subj_num), color = "grey60") +
+  geom_pointrange(stat = "summary", fun.data = \(x) mean_se(x, mult = 2), size = 1) +
+  annotate(geom = "segment",
+           x = 0.5, y = 0, xend = 0.5, yend = 0.08,
+           arrow = arrow(angle = 20, length = unit(0.02, "npc"), type = "closed"),
+           color = "royalblue") +
+  annotate(geom = "text",
+           x = 0.5, y = 0.1,
+           label = "Stimulus-selective",
+           hjust = 0, angle = 90,
+           fontface = "italic",
+           color = "royalblue") +
+  labs(x = NULL,
+       y = expression(r[specific] - r[general]),
+       title = "Superior colliculus encodes expanding motion") +
+  scale_x_discrete(position = "top") + 
+  theme_bw(base_size = 16)
+# Show complete plot
+```
+
+## Define the plot base
+
+```{r}
+#| output-location: slide
+
+plot_data <- example_data %>% 
+  mutate(is_expand = if_else(is_expand, 
+                             "Expanding rings", 
+                             "Other stimuli"))
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff))
+```
+
+## Define the plot base
+
+The data and aesthetic mappings that you define in the plot base will be inherited by all layers, unless overridden.
+
+## Plot individual observations
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "3"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_point()
+```
+
+## Connect paired observations
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "4"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_point() +
+  geom_line(aes(group = subj_num))
+```
+
+## Add a summary statistic
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "5,6"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_point() +
+  geom_line(aes(group = subj_num)) +
+  geom_pointrange(stat = "summary",
+                  fun.data = mean_se)
+```
+
+## Adjust the summary statistic
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "6"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_point() +
+  geom_line(aes(group = subj_num)) +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2))
+```
+
+Use an anonymous function `\(x) f(x, arg1 = foo, arg2 = bar)` to feed in a summary function with non-default arguments.
+
+## Use color to visually separate layers
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "3,5"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_point(color = "grey60") +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2))
+```
+
+## Adjust element size for readability
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "4,9"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1)
+```
+
+## Add reference lines
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "10"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1) +
+  geom_hline(yintercept = 0)
+```
+
+## Add reference lines
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "11"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1) +
+  geom_hline(yintercept = 0,
+             linetype = "dotted")
+```
+
+## Add reference lines
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "3,4"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_hline(yintercept = 0,
+             linetype = "dotted") +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1)
+```
+
+Layers are drawn onto a ggplot _sequentially from bottom to top._
+
+Be thoughtful about layer order!
+
+## Label the axes
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "12,13"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_hline(yintercept = 0,
+             linetype = "dotted") +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1) +
+  labs(x = NULL,
+       y = "Specific r - general r")
+```
+
+## Label the axes
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "13"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_hline(yintercept = 0,
+             linetype = "dotted") +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1) +
+  labs(x = NULL,
+       y = expression(r[specific] - r[general]))
+```
+
+`expression()` allows you to put `plotmath` TeX-style math in plot text.
+
+## Add an informative title
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "14"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_hline(yintercept = 0,
+             linetype = "dotted") +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1) +
+  labs(x = NULL,
+       y = expression(r[specific] - r[general]),
+       title = "Superior colliculus encodes expanding motion")
+```
+
+## Adjust color scheme
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "15"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_hline(yintercept = 0,
+             linetype = "dotted") +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1) +
+  labs(x = NULL,
+       y = expression(r[specific] - r[general]),
+       title = "Superior colliculus encodes expanding motion") +
+  theme_bw()
+```
+
+## Increase text size
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "15"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_hline(yintercept = 0,
+             linetype = "dotted") +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1) +
+  labs(x = NULL,
+       y = expression(r[specific] - r[general]),
+       title = "Superior colliculus encodes expanding motion") +
+  theme_bw(base_size = 16)
+```
+
+## Adjust label aesthetics for readability
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "15"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_hline(yintercept = 0,
+             linetype = "dotted") +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1) +
+  labs(x = NULL,
+       y = expression(r[specific] - r[general]),
+       title = "Superior colliculus encodes expanding motion") +
+  scale_x_discrete(position = "top") + 
+  theme_bw(base_size = 16)
+```
+
+## Annotate for additional reading aid
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "12-21"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_hline(yintercept = 0,
+             linetype = "dotted") +
+  geom_point(color = "grey60",
+             size = 2) +
+  geom_line(aes(group = subj_num),
+            color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1) +
+  annotate(geom = "segment",
+           x = 0.5, y = 0, xend = 0.5, yend = 0.08,
+           arrow = arrow(angle = 20, length = unit(0.02, "npc"), type = "closed"),
+           color = "royalblue") +
+  annotate(geom = "text",
+           x = 0.5, y = 0.1,
+           label = "Stimulus-selective",
+           hjust = 0, angle = 90,
+           fontface = "italic",
+           color = "royalblue") +
+  labs(x = NULL,
+       y = expression(r[specific] - r[general]),
+       title = "Superior colliculus encodes expanding motion") +
+  scale_x_discrete(position = "top") + 
+  theme_bw(base_size = 16)
+```
+
+## Change fonts (overachieving)
+
+```{r}
+#| output-location: slide
+#| code-line-numbers: "20,28"
+
+ggplot(plot_data,
+       aes(x = is_expand, y = r_diff)) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  geom_point(color = "grey60", size = 2) +
+  geom_line(aes(group = subj_num), color = "grey60") +
+  geom_pointrange(stat = "summary",
+                  fun.data = \(x) mean_se(x, mult = 2),
+                  size = 1) +
+  annotate(geom = "segment",
+           x = 0.5, y = 0, xend = 0.5, yend = 0.08,
+           arrow = arrow(angle = 20, length = unit(0.02, "npc"), type = "closed"),
+           color = "royalblue") +
+  annotate(geom = "text",
+           x = 0.5, y = 0.1,
+           label = "Stimulus-selective",
+           hjust = 0, angle = 90,
+           family = "Graphik", 
+           fontface = "italic",
+           color = "royalblue") +
+  labs(x = NULL,
+       y = expression(r[specific] - r[general]),
+       title = "Superior colliculus encodes expanding motion") +
+  scale_x_discrete(position = "top") + 
+  theme_bw(base_size = 16,
+           base_family = "Graphik")
+```
+
+## Change fonts (overachieving)
+
+Graph font rendering is _crazy_ under the hood!
+
+Even still, I still prefer modifying fonts and text elements through ggplot2 when possible.
+
+That way, I don't have to re-position text elements in another program every time I re-render the plot.
+
+## Techniques I didn't have time to show {.smaller}
+
+- Plotting fitted models on top of raw data
+- Setting sensible and attractive color scales
+- Adjusting axis & scale-related elements
+  - Axis and scale limits
+  - Major and minor axis breaks
+  - Axis tick labels
+- Faceting
+- Useful theme techniques:
+  - Moving the legend inside of the plot
+  - Making background elements transparent
+  - Modifying the legend icons
+
+. . .
+
+And many more!!!
+
+## Other pkgs I didn't have time to show {.smaller}
+
+- [showtext](https://cran.r-project.org/web/packages/showtext/vignettes/introduction.html): _Advanced_ font rendering
+- [patchwork](https://patchwork.data-imaginist.com): Multi-panel figures, e.g. for papers
+- [plotly](https://plotly.com/ggplot2/): Make JavaScript-based interactive plots. Use `ggplotly()` to make a ggplot interactive!
+- [gganimate](https://gganimate.com): Make animated plots (map a variable to the time aesthetic!)
+- [factoextra](https://rpkgs.datanovia.com/factoextra/index.html): Convenient exploratory methods for plotting PCA etc.
+- [ggseg](https://ggseg.github.io/ggseg/): Plot parcellation-based brain statmaps with ggplot!
+
+. . .
+
+And many more as well!
+
+## Helpful resources
+
+- [R Graphics Cookbook](https://r-graphics.org): Nearly any aesthetic you could possibly want to adjust is catalogued here. Good place to check if you want to know whether something is possible
+- [ggplot2 docs](https://ggplot2.tidyverse.org): The reading experience is a little nicer here than in the R help tab. 
+  - I strongly recommend you look through _every_ argument to `theme()`!
+- [ggplot2: Elegant Graphics for Data Analysis](https://ggplot2-book.org/): For a more pedagogical experience, following the grammar of graphics
