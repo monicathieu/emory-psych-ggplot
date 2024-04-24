@@ -28,7 +28,11 @@ By the end of this workshop, learners will be able to:
 
 . . .
 
-Show the most important data comparison as _clearly_ and _faithfully_ as possible.^[This may surprise you coming from me, but style comes third.]
+::: {.r-fit-text}
+Show the most important data comparison 
+
+as _clearly_ and _faithfully_ as possible.^[This may surprise you coming from me, but style comes third.]
+:::
 
 ## The grammar of graphics
 
@@ -54,6 +58,14 @@ Each **layer** is a single bundle of graph information:
 . . .
 
 Finally, the **theme** controls the appearance of all non-data elements of the plot.
+
+. . .
+
+Like any grammar, elements in the grammar of graphics can be flexibly included/recombined.
+
+. . .
+
+Building a plot in `ggplot2` tends to require more code as a result, but you have more control over your plots. 
 
 # Building a plot
 
@@ -482,21 +494,30 @@ That way, I don't have to re-position text elements in another program every tim
 
 ## Techniques I didn't have time to show {.smaller}
 
-- Plotting fitted models on top of raw data
+- Faceting
 - Setting sensible and attractive color scales
 - Adjusting axis & scale-related elements
   - Axis and scale limits
   - Major and minor axis breaks
   - Axis tick labels
-- Faceting
 - Useful theme techniques:
   - Moving the legend inside of the plot
   - Making background elements transparent
   - Modifying the legend icons
 
+## Techniques I didn't have time to show {.smaller}
+
+- Plots for visual data analysis vs. presentation
+- Plotting fitted models (with uncertainty) on top of raw data
+- Plots as visual tables (e.g., for model outputs/performance)
+- Plotting similarities/distances using heat maps or projections
+- Exporting results from other programs to plot in ggplot2
+
 . . .
 
-And many more!!!
+And many more! These lists are meant as a starting point to demonstrate the power and flexibility of ggplot2. 
+
+The grammar of graphics means that different plot elements are nearly endlessly combinable and customizable, as long as they're "syntactic." 
 
 ## Other pkgs I didn't have time to show {.smaller}
 
@@ -504,12 +525,18 @@ And many more!!!
 - [patchwork](https://patchwork.data-imaginist.com): Multi-panel figures, e.g. for papers
 - [plotly](https://plotly.com/ggplot2/): Make JavaScript-based interactive plots. Use `ggplotly()` to make a ggplot interactive!
 - [gganimate](https://gganimate.com): Make animated plots (map a variable to the time aesthetic!)
-- [factoextra](https://rpkgs.datanovia.com/factoextra/index.html): Convenient exploratory methods for plotting PCA etc.
-- [ggseg](https://ggseg.github.io/ggseg/): Plot parcellation-based brain statmaps with ggplot!
 
+## Other pkgs I didn't have time to show {.smaller}
+
+And ggplot2-based packages for specific plot varieties, if you need them:
+
+- [factoextra](https://rpkgs.datanovia.com/factoextra/index.html): Convenient exploratory methods for plotting PCA etc.
+- [ggraph](https://ggraph.data-imaginist.com): Plot relational data structures like networks, trees, etc.
+- [ggalluvial](http://corybrunson.github.io/ggalluvial/): Alluvial plots
+- [ggseg](https://ggseg.github.io/ggseg/): Plot parcellation-based brain statmaps with ggplot
 . . .
 
-And many more as well!
+And many more as well! Again, these lists are not exhaustive, but meant as a jumping-off point to save you some Googling.
 
 ## Helpful resources
 
