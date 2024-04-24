@@ -1,6 +1,8 @@
 ---
 title: "Advanced data visualization with ggplot2"
+subtitle: "Emory GSPN workshop"
 author: "Monica Thieu, PhD"
+date: "April 24, 2024"
 execute:
   echo: true
   cache: true
@@ -534,6 +536,7 @@ And ggplot2-based packages for specific plot varieties, if you need them:
 - [ggraph](https://ggraph.data-imaginist.com): Plot relational data structures like networks, trees, etc.
 - [ggalluvial](http://corybrunson.github.io/ggalluvial/): Alluvial plots
 - [ggseg](https://ggseg.github.io/ggseg/): Plot parcellation-based brain statmaps with ggplot
+
 . . .
 
 And many more as well! Again, these lists are not exhaustive, but meant as a jumping-off point to save you some Googling.
